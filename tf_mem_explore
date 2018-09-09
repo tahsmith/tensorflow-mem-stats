@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+import pickle
+import re
+import sys
+from collections import Counter, defaultdict
+
+
+def main(argv):
+    in_path = argv[1]
+    pattern_str = argv[3]
+    with open(in_path, 'rb') as file:
+        allocation_list = pickle.load(file)
+
+    pattern = re.compile(pattern_str)
+    count(pattern, allocation_list)
+
+
+def count(pattern, allocation_list):
+    allocs = defaultdict(int)
+    max_allocs = defaultdict(int)
+
+    for allocation in allocation_list:
+        time, size, tensor = allocation
+        if pattern.match(tensor):
+            allocs[tensor] += size
+            max_allocs[tensor] = max(max_allocs[tensor], allocs[tensor])
+
+    for size, tensor in sorted((v, k) for k, v in max_allocs.items()):
+        print(f'{size}: {tensor}')
+
+    total = sum(max_allocs.values())
+    print(f'total: {total}')
+
+
+if __name__ == '__main__':
+    main(sys.argv)

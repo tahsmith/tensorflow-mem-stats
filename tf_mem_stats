@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+
+import re
+import sys
+import os
+import subprocess
+import pickle
+
+allocation_re = re.compile(br'At time (\d+) (de)?allocated (\d+) for tensor'
+                           br' (.+)')
+
+
+def main(argv):
+    if argv[1] == '-o':
+        out_path = argv[2]
+        del argv[1:3]
+    else:
+        out_path = 'stats.p'
+
+    proc = start_proc(argv[1:])
+    stats = debug_process(proc)
+    proc.wait()
+
+    with open(out_path, 'wb') as file:
+        pickle.dump(stats, file)
+
+
+def start_proc(args):
+    environ = os.environ.copy()
+    environ['PYTHONUNBUFFERED'] = '1'
+    environ['TF_CPP_MIN_VLOG_LEVEL'] = '3'
+
+    return subprocess.Popen(args, env=environ, stderr=subprocess.PIPE)
+
+
+def debug_process(proc):
+    allocation = []
+    for line in proc.stderr:
+        match = allocation_re.search(line)
+        if not match:
+            continue
+
+        time, deallocation, size, tensor = match.groups()
+        size = int(size)
+        tensor = tensor.decode()
+        time = int(time)
+        if deallocation:
+            size = -size
+        allocation.append((time, size, tensor))
+
+    return allocation
+
+
+if __name__ == '__main__':
+    main(sys.argv)
