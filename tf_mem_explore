@@ -6,8 +6,12 @@ from collections import Counter, defaultdict
 
 
 def main(argv):
-    in_path = argv[1]
-    pattern_str = argv[3]
+    pattern_str = argv[1]
+    try:
+        in_path = argv[2]
+    except IndexError:
+        in_path = 'stats.p'
+
     with open(in_path, 'rb') as file:
         allocation_list = pickle.load(file)
 
